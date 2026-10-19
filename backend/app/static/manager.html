@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel gerencial</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1d2433; --muted:#667085; --line:#e4e7ec; --brand:#1f5eff; --bad:#b42318; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:var(--card); border-bottom:1px solid var(--line); padding:14px 24px; display:flex; justify-content:space-between; }
+  header a { color:var(--brand); text-decoration:none; }
+  main { max-width:760px; margin:24px auto; padding:0 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px; margin-bottom:16px; }
+  form { display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
+  label { display:flex; flex-direction:column; font-size:13px; color:var(--muted); gap:4px; }
+  input { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; text-transform:uppercase; }
+  button { font:inherit; padding:9px 16px; border:0; border-radius:8px; background:var(--brand); color:#fff; cursor:pointer; }
+  .big { font-size:44px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .bar { height:10px; background:var(--line); border-radius:6px; overflow:hidden; margin:8px 0 14px; }
+  .bar > div { height:100%; background:var(--brand); }
+  .muted { color:var(--muted); font-size:13px; }
+  .bad { color:var(--bad); }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<header><strong>Panel gerencial · ocupación por ruta</strong><a href="/">← Reservas</a></header>
+<main>
+  <section class="card">
+    <form id="load">
+      <label>Ruta <input data-testid="manager-route" placeholder="BOG-MDE" required></label>
+      <label>Mes <input data-testid="manager-month" placeholder="2024-05" required></label>
+      <button type="submit" data-testid="manager-load">Consultar</button>
+    </form>
+    <div id="msg" class="muted" style="margin-top:10px"></div>
+  </section>
+  <section class="card" id="result" hidden>
+    <div class="muted" id="title"></div>
+    <div class="big" data-testid="occupancy-value" id="occ"></div>
+    <div class="bar"><div id="bar"></div></div>
+    <div id="detail" class="muted"></div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const tid = (name) => document.querySelector(`[data-testid="${name}"]`);
+
+$("load").onsubmit = async (e) => {
+  e.preventDefault();
+  const route = tid("manager-route").value.trim().toUpperCase().replace(/\s+/g, "");
+  const month = tid("manager-month").value.trim();
+  $("result").hidden = true;           // nunca mostrar el valor de una consulta anterior
+  $("msg").className = "muted";
+  $("msg").textContent = "Consultando Athena…";
+  const r = await fetch(`/analytics/occupancy?route=${encodeURIComponent(route)}&month=${encodeURIComponent(month)}`);
+  if (r.status !== 200) {
+    $("msg").className = "bad";
+    $("msg").textContent = r.status === 404 ? "No hay datos para esa ruta y mes." : "No se pudo consultar (revise ruta AAA-BBB y mes AAAA-MM).";
+    return;
+  }
+  const d = await r.json();
+  const pct = d.occupancy * 100;
+  // Dos decimales: el harness compara con tolerancia 0.001 (0.1 punto porcentual).
+  $("occ").textContent = pct.toFixed(2) + "%";
+  $("bar").style.width = Math.min(pct, 100) + "%";
+  $("title").textContent = `${d.route} · ${d.month}`;
+  $("detail").textContent = `${d.seats_sold.toLocaleString("es-CO")} sillas vendidas de ${d.seats_capacity.toLocaleString("es-CO")} de capacidad`;
+  $("msg").textContent = "";
+  $("result").hidden = false;
+};
+</script>
+</body>
+</html>

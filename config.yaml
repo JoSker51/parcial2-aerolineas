@@ -1,0 +1,20 @@
+# Configuración del harness para este equipo. Sin credenciales: el harness usa ~/.aws.
+# IP elástica (eipalloc-0e4114c85321e9736): no cambia aunque el Learner Lab detenga y reinicie la EC2.
+team_id: "airline-p2"
+seed: 190
+
+backend:
+  base_url: "http://100.60.245.136:8000"
+frontend:
+  base_url: "http://100.60.245.136:8000"     # el mismo proceso sirve / y /manager
+
+aws:
+  region: us-east-1
+  athena_workgroup: primary
+  athena_database: airline_analytics
+  athena_output: "s3://airline-p2-488483603895/athena-results/"
+  tables:
+    detail: reservations_curated
+    metrics: route_month_metrics
+
+cost_projection_file: cost_projection.yaml

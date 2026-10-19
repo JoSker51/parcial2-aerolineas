@@ -1,0 +1,9 @@
+assumptions: "Operacion 24x7 de una sola EC2 (API + frontend + PostgreSQL). ~2.000 busquedas y ~150 reservas por dia; ~30 consultas/dia al panel gerencial (900/mes). Historico: 2 M reservas = 85 MB CSV crudo, ~25 MB Parquet. EMR: 1 corrida mensual de 2 nodos m4.large (master + core, <1 h facturada). Precios on-demand us-east-1."
+line_items:
+  - {service: "EC2", detail: "t3.small 24x7 (API + frontend + PostgreSQL 15), 730 h x 0.0208", monthly_usd: 15.18}
+  - {service: "EC2", detail: "EBS gp3 8 GB (raiz + datos de PostgreSQL)", monthly_usd: 0.64}
+  - {service: "VPC", detail: "Elastic IP asociada a la EC2 (IP fija para el harness), 730 h x 0.005", monthly_usd: 3.65}
+  - {service: "S3", detail: "~0.2 GB (crudo + Parquet + logs), resultados de Athena expiran a los 7 dias", monthly_usd: 0.05}
+  - {service: "Athena", detail: "~1.000 consultas/mes x 10 MB minimo facturable = ~10 GB escaneados", monthly_usd: 0.05}
+  - {service: "EMR", detail: "1 corrida/mes, 2 x m4.large (master + core), 1 h facturada c/u (EC2 0.10 + EMR 0.03)", monthly_usd: 0.26}
+  - {service: "Glue", detail: "Data Catalog: 2 tablas, muy por debajo del millon de objetos gratuitos; sin crawlers", monthly_usd: 0.0}

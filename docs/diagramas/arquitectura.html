@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Arquitectura</title>
+<style>
+  body { margin:0; font-family: "Segoe UI", system-ui, sans-serif; background:#fff; color:#1d2433; }
+  #c { position:relative; width:1400px; height:800px; }
+  .lane { position:absolute; left:20px; width:1360px; border-radius:14px; }
+  .lane .t { position:absolute; left:16px; top:10px; font-size:15px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+  .oltp { top:20px; height:330px; background:#eef4ff; border:2px solid #b8cdfb; }
+  .oltp .t { color:#1f4fc4; }
+  .olap { top:380px; height:400px; background:#effaf4; border:2px solid #b5e3c8; }
+  .olap .t { color:#13744b; }
+  .box { position:absolute; background:#fff; border:2px solid #98a2b3; border-radius:10px; padding:10px 12px; font-size:14px; line-height:1.35; box-shadow:0 1px 2px rgba(0,0,0,.06); }
+  .box b { font-size:16px; display:block; margin-bottom:3px; }
+  .box .s { color:#5b6475; font-size:12.5px; }
+  .aws { border-color:#e08a00; }
+  .user { border-color:#475467; background:#f9fafb; }
+  .ec2 { position:absolute; left:400px; top:55px; width:640px; height:270px; border:3px dashed #e08a00; border-radius:14px; }
+  .ec2 .lbl { position:absolute; left:14px; top:8px; font-weight:700; color:#b26a00; font-size:15px; }
+  .ec2 .lbl span { font-weight:400; color:#5b6475; font-size:13px; }
+  .tag { position:absolute; font-size:12px; color:#344054; background:#fff; padding:1px 6px; border-radius:6px; border:1px solid #d0d5dd; white-space:nowrap; }
+  svg { position:absolute; left:0; top:0; }
+</style></head>
+<body><div id="c">
+  <div class="lane oltp"><div class="t">Camino transaccional — clientes (R1, R2, R3, R8)</div></div>
+  <div class="lane olap"><div class="t">Camino analítico — gerentes (R4, R5, R6, R7, R9)</div></div>
+
+  <div class="box user" style="left:50px; top:85px; width:250px;"><b>Cliente (navegador)</b>Página <code>/</code><div class="s">buscar → reservar → confirmación</div></div>
+  <div class="box user" style="left:50px; top:225px; width:250px;"><b>Gerente (navegador)</b>Página <code>/manager</code><div class="s">ocupación por ruta y mes</div></div>
+
+  <div class="ec2"><div class="lbl">EC2 t3.small · Amazon Linux 2023 <span>· Elastic IP · rol LabInstanceProfile</span></div></div>
+  <div class="box aws" style="left:430px; top:105px; width:300px; height:190px;"><b>FastAPI + uvicorn (2 procesos)</b>
+    API del contrato A.1 y las dos páginas estáticas en el puerto 8000
+    <div class="s" style="margin-top:8px">· POST /reservations: SELECT … FOR UPDATE<br>· GET /flights/search: índice (origen, destino, fecha)<br>· GET /analytics/occupancy → Athena</div></div>
+  <div class="box aws" style="left:790px; top:105px; width:220px; height:190px;"><b>PostgreSQL 15</b>
+    Solo escucha en <code>localhost</code>
+    <div class="s" style="margin-top:8px">tablas <code>flight</code> y <code>reservation</code><br>CHECK seats_sold ≤ capacity<br>(última defensa contra la sobreventa)</div></div>
+
+  <div class="box aws" style="left:50px; top:440px; width:210px;"><b>S3 · raw/</b>flights.csv<br>reservations.csv<div class="s">2,07 M filas sucias · 85 MB</div></div>
+  <div class="box aws" style="left:330px; top:425px; width:280px;"><b>Amazon EMR 6.15 (Spark)</b>1 master + 1 core, m4.large<div class="s">step <code>curate.py</code>: reglas C1–C5, cruce con vuelos, agregación<br>--auto-terminate: se destruye al terminar</div></div>
+  <div class="box aws" style="left:680px; top:425px; width:280px;"><b>S3 · curated/ (Parquet)</b>reservations_curated/month=YYYY-MM/<br>route_month_metrics/<div class="s">2.005.463 filas · 24 particiones · ~20 MB</div></div>
+  <div class="box aws" style="left:1030px; top:425px; width:320px;"><b>AWS Glue Data Catalog</b>base airline_analytics · 2 tablas<div class="s">creadas con DDL de Athena (sin crawler)<br>partition projection sobre <code>month</code></div></div>
+  <div class="box aws" style="left:1030px; top:620px; width:320px;"><b>Amazon Athena</b>SQL serverless sobre los Parquet<div class="s">consulta parametrizada a route_month_metrics<br>~1,7 s · mínimo facturable 10 MB</div></div>
+
+  <svg width="1400" height="800">
+    <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#344054"/></marker></defs>
+    <g stroke="#344054" stroke-width="2.2" fill="none" marker-end="url(#a)">
+      <path d="M300,125 L428,150"/>
+      <path d="M300,265 L428,250"/>
+      <path d="M730,200 L788,200"/>
+      <path d="M260,480 L328,480"/>
+      <path d="M610,480 L678,480"/>
+      <path d="M960,480 L1028,480"/>
+      <path d="M1190,540 L1190,618"/>
+      <path d="M700,320 L700,364 L1012,364 L1012,665 L1027,665" stroke-dasharray="7 5"/>
+    </g>
+  </svg>
+  <div class="tag" style="left:315px; top:110px;">HTTP :8000</div>
+  <div class="tag" style="left:735px; top:178px;">SQL</div>
+  <div class="tag" style="left:258px; top:455px;">lee CSV</div>
+  <div class="tag" style="left:606px; top:455px;">escribe</div>
+  
+  <div class="tag" style="left:1200px; top:570px;">metadatos</div>
+  
+  <div class="tag" style="left:720px; top:600px; white-space:normal; width:260px;">GET /analytics/occupancy consulta Athena con boto3 y el rol de la instancia (sin claves guardadas)</div>
+  <div class="tag" style="left:40px; top:735px; border:0; background:transparent; color:#5b6475;">La analítica nunca toca PostgreSQL: un gerente consultando no puede frenar una reserva.</div>
+</div></body></html>

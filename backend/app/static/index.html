@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reservas de vuelos</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1d2433; --muted:#667085; --line:#e4e7ec; --brand:#1f5eff; --ok:#12805c; --bad:#b42318; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:var(--card); border-bottom:1px solid var(--line); padding:14px 24px; display:flex; justify-content:space-between; }
+  header a { color:var(--brand); text-decoration:none; }
+  main { max-width:760px; margin:24px auto; padding:0 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px; margin-bottom:16px; }
+  form.row { display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
+  label { display:flex; flex-direction:column; font-size:13px; color:var(--muted); gap:4px; }
+  input, select { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; }
+  input.iata { width:90px; text-transform:uppercase; }
+  button { font:inherit; padding:9px 16px; border:0; border-radius:8px; background:var(--brand); color:#fff; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:default; }
+  .flight { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-top:1px solid var(--line); }
+  .flight:first-child { border-top:0; }
+  .muted { color:var(--muted); font-size:13px; }
+  .msg { margin-top:10px; }
+  .msg.bad { color:var(--bad); }
+  .ok { color:var(--ok); font-weight:600; }
+  code { font-size:14px; background:#eef2ff; padding:2px 6px; border-radius:6px; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<header><strong>✈ Reservas</strong><a href="/manager">Panel gerencial →</a></header>
+<main>
+  <section class="card">
+    <form id="search" class="row">
+      <label>Origen <input class="iata" data-testid="search-origin" maxlength="3" required placeholder="BOG"></label>
+      <label>Destino <input class="iata" data-testid="search-destination" maxlength="3" required placeholder="MDE"></label>
+      <label>Fecha <input type="date" data-testid="search-date" required></label>
+      <button type="submit" data-testid="search-submit">Buscar</button>
+    </form>
+    <div id="search-msg" class="msg"></div>
+  </section>
+
+  <section class="card" id="results" hidden></section>
+
+  <section class="card" id="booking" hidden>
+    <div id="booking-flight" class="muted"></div>
+    <form id="confirm" class="row" style="margin-top:10px">
+      <label>Pasajero <input data-testid="passenger-name" required placeholder="Nombre completo"></label>
+      <label>Clase
+        <select id="fare-class"><option value="ECONOMY">Económica</option><option value="BUSINESS">Ejecutiva</option></select>
+      </label>
+      <button type="submit" data-testid="confirm-submit">Confirmar reserva</button>
+    </form>
+    <div id="booking-msg" class="msg"></div>
+  </section>
+
+  <section class="card" id="done" hidden>
+    <div class="ok">Reserva confirmada</div>
+    <div>Código de reserva: <code data-testid="confirmation-id" id="confirmation-id"></code></div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const tid = (name) => document.querySelector(`[data-testid="${name}"]`);
+const money = (c) => (c / 100).toLocaleString("es-CO", { style: "currency", currency: "USD" });
+let selected = null;
+
+async function api(method, url, body) {
+  const r = await fetch(url, { method, headers: { "Content-Type": "application/json" },
+                               body: body ? JSON.stringify(body) : undefined });
+  let data = null;
+  try { data = await r.json(); } catch (_) {}
+  return { status: r.status, data };
+}
+
+function renderResults(flights) {
+  const box = $("results");
+  box.replaceChildren();
+  box.hidden = false;
+  if (!flights.length) { box.textContent = "No hay vuelos con sillas disponibles para esa búsqueda."; return; }
+  for (const f of flights) {
+    const row = document.createElement("div");
+    row.className = "flight";
+    row.dataset.testid = "flight-row";
+    row.innerHTML = `<div><strong>${f.route}</strong> · ${f.flight_date}<div class="muted">Vuelo ${f.flight_id} · ${f.seats_available} sillas</div></div>`;
+    const right = document.createElement("div");
+    right.innerHTML = `<span style="margin-right:12px">${money(f.price_cents)}</span>`;
+    const btn = document.createElement("button");
+    btn.dataset.testid = "reserve-button";
+    btn.textContent = "Reservar";
+    btn.onclick = () => openBooking(f);
+    right.append(btn);
+    row.append(right);
+    box.append(row);
+  }
+}
+
+function openBooking(f) {
+  selected = f;
+  $("done").hidden = true;
+  $("booking").hidden = false;
+  $("booking-msg").textContent = "";
+  $("booking-flight").textContent = `Vuelo ${f.flight_id} · ${f.route} · ${f.flight_date}`;
+  tid("passenger-name").focus();
+}
+
+$("search").onsubmit = async (e) => {
+  e.preventDefault();
+  $("search-msg").textContent = "";
+  const o = tid("search-origin").value.trim().toUpperCase();
+  const d = tid("search-destination").value.trim().toUpperCase();
+  const date = tid("search-date").value;
+  const r = await api("GET", `/flights/search?origin=${encodeURIComponent(o)}&destination=${encodeURIComponent(d)}&date=${encodeURIComponent(date)}`);
+  if (r.status !== 200) { $("search-msg").className = "msg bad"; $("search-msg").textContent = "Revise origen, destino (3 letras) y fecha."; return; }
+  renderResults(r.data);
+};
+
+$("confirm").onsubmit = async (e) => {
+  e.preventDefault();
+  const btn = tid("confirm-submit");
+  btn.disabled = true;
+  const r = await api("POST", "/reservations", {
+    flight_id: selected.flight_id, passenger_name: tid("passenger-name").value.trim(), fare_class: $("fare-class").value });
+  btn.disabled = false;
+  if (r.status === 201) {
+    $("booking").hidden = true;
+    $("confirmation-id").textContent = r.data.reservation_id;
+    $("done").hidden = false;
+  } else if (r.status === 409) {
+    // DEC-13 del parcial 1: sin sillas no es un error genérico; se recarga la disponibilidad.
+    $("booking-msg").className = "msg bad";
+    $("booking-msg").textContent = "Ese vuelo se quedó sin sillas. Actualizamos los resultados.";
+    $("search").requestSubmit();
+  } else {
+    $("booking-msg").className = "msg bad";
+    $("booking-msg").textContent = "No se pudo completar la reserva.";
+  }
+};
+</script>
+</body>
+</html>

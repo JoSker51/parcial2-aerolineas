@@ -1,0 +1,8 @@
+data/
+infra/.*
+__pycache__/
+*.pyc
+.venv/
+report.json
+.aws/
+*.pem
