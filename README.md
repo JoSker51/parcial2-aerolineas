@@ -41,4 +41,21 @@ bash infra/05_redeploy.sh              # redesplegar el backend tras un cambio
 ```
 
 Antes de correr el harness, verificar que no quede ningún cluster EMR vivo (R10/R11).
+
+## Pruebas adicionales (`pruebas/`)
+
+Simulan la corrida del docente, que usa una copia propia del harness con un `probe_salt` secreto. Resultado del 22-oct-2026:
+
+| Prueba | Resultado |
+|---|---|
+| Harness limpio (descomprimido del ZIP original) con `probe_salt: 31337` | 70/70 |
+| `con_salts.sh`: R7 y R9 con 5 salts distintos | 5/5 (30 pares ruta-mes distintos) |
+| `todos_los_pares.py`: el endpoint con los 336 pares ruta-mes | 336/336, máx. 3,2 s |
+| `test_contrato.py`: casos 404/409/422, 100 reservas por 1 silla, 80 por 20 con analítica en paralelo, búsqueda con 50 clientes, selectores | 28/28 |
+
+```bash
+python pruebas/todos_los_pares.py <carpeta-harness> http://100.60.245.136:8000
+BASE_URL=http://100.60.245.136:8000 python -m pytest pruebas/test_contrato.py -q
+bash pruebas/con_salts.sh <copia-limpia-del-harness> python
+```
 Las credenciales nunca se suben al repositorio.
