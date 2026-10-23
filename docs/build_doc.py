@@ -185,8 +185,8 @@ P("SEGUNDO PARCIAL", 12, MUTED, WD_ALIGN_PARAGRAPH.CENTER, 2)
 P("**Sistema de reservas de aerolínea**", 26, BLUE, WD_ALIGN_PARAGRAPH.CENTER, 0)
 P("Panel analítico gerencial con EMR, Glue Data Catalog y Athena", 15, INK, WD_ALIGN_PARAGRAPH.CENTER, 24)
 P("Big Data e Ingeniería de Datos", 12, MUTED, WD_ALIGN_PARAGRAPH.CENTER, 40)
-P("Integrantes: [[Nombre completo integrante 1]] · [[Nombre completo integrante 2]]", 11.5, None, WD_ALIGN_PARAGRAPH.CENTER, 4)
-P("Docente: [[Nombre del profesor]]", 11.5, None, WD_ALIGN_PARAGRAPH.CENTER, 4)
+P("Integrantes: Luis Alejandro Caro Díaz · José Santiago Gonzales Enriquez", 11.5, None, WD_ALIGN_PARAGRAPH.CENTER, 4)
+P("Docente: Camilo Enrique Rodríguez Torres", 11.5, None, WD_ALIGN_PARAGRAPH.CENTER, 4)
 P("Seed del equipo: **190** · Cuenta AWS Academy Learner Lab, región us-east-1", 11.5, None, WD_ALIGN_PARAGRAPH.CENTER, 4)
 P("Entrega: 23 de octubre de 2026", 11.5, None, WD_ALIGN_PARAGRAPH.CENTER, 40)
 
@@ -453,7 +453,11 @@ LOG = [
     ("P-07 · Documento",
      "\"arranca con el documento Word (secciones 5 y 6, diagrama, tabla de servicios, costos y bitácora de prompts)\"",
      "Este documento, el diagrama de arquitectura y las capturas del sistema real.",
-     "[[Completar: qué revisó, cambió o rechazó el equipo al leer el borrador.]]"),
+     "El equipo revisó el borrador y completó la portada (integrantes y docente). Al prepararse para la "
+     "sustentación pidió además: (1) un recorrido de qué mostrar en la consola de AWS si el docente lo pide, "
+     "que se agregó a la guía interna de defensa; (2) cómo repartir la exposición entre los dos integrantes; "
+     "y (3) si existía un documento que conectara cada punto del enunciado con dónde se resuelve y por qué. "
+     "La respuesta a (3) fue que esa trazabilidad está repartida entre las secciones 3, 5.1 y 9 de este documento."),
 ]
 for title, prompt, produced, correction in LOG:
     H(title, 2)
